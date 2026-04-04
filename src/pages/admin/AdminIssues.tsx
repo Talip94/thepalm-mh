@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 export default function AdminIssues() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
 
   const { data: issues, isLoading } = useQuery({
     queryKey: ['admin-issues'],
@@ -25,6 +26,7 @@ export default function AdminIssues() {
   const filtered = (issues ?? []).filter(i => {
     if (statusFilter !== 'all' && i.status !== statusFilter) return false;
     if (categoryFilter !== 'all' && i.category !== categoryFilter) return false;
+    if (priorityFilter !== 'all' && i.priority !== priorityFilter) return false;
     return true;
   });
 
@@ -48,6 +50,13 @@ export default function AdminIssues() {
           <SelectContent>
             <SelectItem value="all">Alle Kategorien</SelectItem>
             {ISSUE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Priorität" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle Prioritäten</SelectItem>
+            {PRIORITIES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
