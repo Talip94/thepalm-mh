@@ -118,6 +118,24 @@ export default function AdminIssueDetail() {
           </div>
           <Separator />
           <div><p className="text-xs text-muted-foreground mb-2">Beschreibung</p><p className="text-sm whitespace-pre-wrap">{issue.description}</p></div>
+          {issue.photo_paths && issue.photo_paths.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Fotos ({issue.photo_paths.length})</p>
+                <div className="flex flex-wrap gap-3">
+                  {issue.photo_paths.map((path, i) => {
+                    const { data } = supabase.storage.from('issue-photos').getPublicUrl(path);
+                    return (
+                      <a key={i} href={data.publicUrl} target="_blank" rel="noopener noreferrer" className="w-24 h-24 rounded-lg overflow-hidden border border-border hover:border-primary/30 transition-colors">
+                        <img src={data.publicUrl} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
