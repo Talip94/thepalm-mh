@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import thePalmLogo from '@/assets/the-palm-logo.png';
+import thePalmLogo from '@/assets/the-palm-logo.jpg';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -41,8 +41,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="flex flex-col items-center mb-8">
-          <img src={thePalmLogo} alt="The Palm – Studio Apartments" className="h-24 mb-4" />
+        <div className="flex flex-col items-center mb-6">
+          <img src={thePalmLogo} alt="The Palm – Studio Apartments" className="w-full max-w-md mb-2" />
           <p className="text-muted-foreground text-sm">Portal</p>
         </div>
 
