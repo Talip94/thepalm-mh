@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, FileText, AlertTriangle, Calendar, MapPin } from 'lucide-react';
-import { getStatusInfo, getPriorityInfo, getCategoryLabel } from '@/lib/constants';
+import { getStatusInfo, getPriorityInfo, getCategoryLabel, APARTMENT_CATEGORIES } from '@/lib/constants';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
