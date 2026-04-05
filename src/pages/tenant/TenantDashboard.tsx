@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, FileText, AlertTriangle, Calendar, MapPin } from 'lucide-react';
-import { getStatusInfo, getPriorityInfo, getCategoryLabel } from '@/lib/constants';
+import { getStatusInfo, getPriorityInfo, getCategoryLabel, APARTMENT_CATEGORIES } from '@/lib/constants';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -102,10 +102,10 @@ export default function TenantDashboard() {
                   <p className="text-sm font-medium">{format(new Date(tenant.lease_start), 'dd. MMMM yyyy', { locale: de })}</p>
                 </div>
               )}
-              {apartment.size_sqm && (
+              {apartment.category && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Größe</p>
-                  <p className="text-sm font-medium">{apartment.size_sqm} m² · {apartment.rooms} Zimmer</p>
+                  <p className="text-sm text-muted-foreground">Kategorie</p>
+                  <p className="text-sm font-medium">{APARTMENT_CATEGORIES.find(c => c.value === apartment.category)?.label ?? apartment.category} · {apartment.rooms} Zimmer</p>
                 </div>
               )}
             </div>

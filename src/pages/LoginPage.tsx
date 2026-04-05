@@ -44,8 +44,8 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4">
             <Building2 className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">MikroPortal</h1>
-          <p className="text-muted-foreground text-sm mt-1">Ihr Mieterportal für Mikroapartments</p>
+          <h1 className="font-heading text-2xl font-bold text-foreground"><span className="underline">The Palm</span></h1>
+          <p className="text-muted-foreground text-sm mt-1">Studio Apartments · Portal</p>
         </div>
 
         <Card className="border-border/50 shadow-lg">

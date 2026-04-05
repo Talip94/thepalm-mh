@@ -31,7 +31,7 @@ function TenantSidebarContent() {
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-sm font-heading font-semibold text-sidebar-foreground truncate">MikroPortal</p>
+              <p className="text-sm font-heading font-semibold text-sidebar-foreground truncate"><span className="underline">The Palm</span> <span className="font-normal text-sidebar-foreground/60 text-xs">Portal</span></p>
               {tenantInfo && (
                 <p className="text-xs text-sidebar-foreground/60 truncate">
                   {tenantInfo.apartment_number}

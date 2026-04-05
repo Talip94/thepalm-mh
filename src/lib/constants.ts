@@ -27,6 +27,15 @@ export const PRIORITIES = [
   { value: 'urgent', label: 'Dringend', className: 'priority-urgent' },
 ] as const;
 
+export const APARTMENT_CATEGORIES = [
+  { value: 'micro', label: 'Micro' },
+  { value: 'basic', label: 'Basic' },
+  { value: 'basic_large', label: 'Basic Large' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'premium_large', label: 'Premium Large' },
+  { value: 'premium_plus', label: 'Premium Plus' },
+] as const;
+
 export const APARTMENT_STATUSES = [
   { value: 'available', label: 'Verfügbar' },
   { value: 'occupied', label: 'Belegt' },
