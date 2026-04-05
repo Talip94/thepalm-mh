@@ -41,8 +41,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="flex flex-col items-center mb-8">
-          <img src={thePalmLogo} alt="The Palm – Studio Apartments" className="h-24 mb-4" />
+        <div className="flex flex-col items-center mb-6">
+          <img src={thePalmLogo} alt="The Palm – Studio Apartments" className="w-full max-w-md mb-2" />
           <p className="text-muted-foreground text-sm">Portal</p>
         </div>
 
