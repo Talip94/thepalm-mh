@@ -17,6 +17,7 @@ export type Database = {
       apartments: {
         Row: {
           apartment_number: string
+          category: string | null
           city: string | null
           created_at: string
           description: string | null
@@ -25,13 +26,13 @@ export type Database = {
           name: string | null
           postal_code: string | null
           rooms: number | null
-          size_sqm: number | null
           status: string
           street: string | null
           updated_at: string
         }
         Insert: {
           apartment_number: string
+          category?: string | null
           city?: string | null
           created_at?: string
           description?: string | null
@@ -40,13 +41,13 @@ export type Database = {
           name?: string | null
           postal_code?: string | null
           rooms?: number | null
-          size_sqm?: number | null
           status?: string
           street?: string | null
           updated_at?: string
         }
         Update: {
           apartment_number?: string
+          category?: string | null
           city?: string | null
           created_at?: string
           description?: string | null
@@ -55,7 +56,6 @@ export type Database = {
           name?: string | null
           postal_code?: string | null
           rooms?: number | null
-          size_sqm?: number | null
           status?: string
           street?: string | null
           updated_at?: string
