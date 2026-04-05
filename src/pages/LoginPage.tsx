@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import thePalmLogo from '@/assets/the-palm-logo.png';
-import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
