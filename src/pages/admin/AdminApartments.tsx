@@ -6,17 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { APARTMENT_STATUSES } from '@/lib/constants';
+import { APARTMENT_STATUSES, APARTMENT_CATEGORIES } from '@/lib/constants';
 import { Building2, Plus, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 
 export default function AdminApartments() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', size_sqm: '', rooms: '1', status: 'available' });
+  const [form, setForm] = useState({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', category: 'micro', rooms: '1', status: 'available' });
 
   const { data: apartments, isLoading } = useQuery({
     queryKey: ['admin-apartments'],
@@ -35,7 +34,7 @@ export default function AdminApartments() {
         city: data.city || null,
         postal_code: data.postal_code || null,
         floor: data.floor || null,
-        size_sqm: data.size_sqm ? parseFloat(data.size_sqm) : null,
+        category: data.category,
         rooms: data.rooms ? parseInt(data.rooms) : 1,
         status: data.status,
       };
@@ -58,7 +57,7 @@ export default function AdminApartments() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
-  const resetForm = () => setForm({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', size_sqm: '', rooms: '1', status: 'available' });
+  const resetForm = () => setForm({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', category: 'micro', rooms: '1', status: 'available' });
 
   const openEdit = (apt: any) => {
     setEditing(apt);
@@ -69,7 +68,7 @@ export default function AdminApartments() {
       city: apt.city || 'Berlin',
       postal_code: apt.postal_code || '',
       floor: apt.floor || '',
-      size_sqm: apt.size_sqm?.toString() || '',
+      category: apt.category || 'micro',
       rooms: apt.rooms?.toString() || '1',
       status: apt.status,
     });
@@ -107,7 +106,13 @@ export default function AdminApartments() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1"><Label className="text-xs">Etage</Label><Input value={form.floor} onChange={e => setForm(f => ({ ...f, floor: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs">m²</Label><Input type="number" value={form.size_sqm} onChange={e => setForm(f => ({ ...f, size_sqm: e.target.value }))} /></div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Kategorie</Label>
+                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{APARTMENT_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-1"><Label className="text-xs">Zimmer</Label><Input type="number" value={form.rooms} onChange={e => setForm(f => ({ ...f, rooms: e.target.value }))} /></div>
               </div>
               <div className="space-y-1">
@@ -133,6 +138,7 @@ export default function AdminApartments() {
         <div className="space-y-2">
           {apartments.map(apt => {
             const statusLabel = APARTMENT_STATUSES.find(s => s.value === apt.status)?.label ?? apt.status;
+            const categoryLabel = APARTMENT_CATEGORIES.find(c => c.value === apt.category)?.label ?? apt.category;
             return (
               <Card key={apt.id} className="hover:border-primary/20 transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
@@ -141,7 +147,7 @@ export default function AdminApartments() {
                       <p className="text-sm font-medium">{apt.apartment_number} {apt.name && `– ${apt.name}`}</p>
                       <span className={`status-badge ${statusColor[apt.status] || 'status-closed'}`}>{statusLabel}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{apt.street && `${apt.street}, `}{apt.postal_code} {apt.city} {apt.size_sqm && `· ${apt.size_sqm} m²`}</p>
+                    <p className="text-xs text-muted-foreground">{apt.street && `${apt.street}, `}{apt.postal_code} {apt.city} · {categoryLabel}</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}><Pencil className="h-4 w-4" /></Button>
                 </CardContent>

@@ -33,8 +33,8 @@ function AdminSidebarContent() {
           </div>
           {!collapsed && (
             <div>
-              <p className="text-sm font-heading font-semibold text-sidebar-foreground">MikroPortal</p>
-              <p className="text-xs text-sidebar-foreground/60">Administration</p>
+              <p className="text-sm font-heading font-semibold text-sidebar-foreground"><span className="underline">The Palm</span></p>
+              <p className="text-xs text-sidebar-foreground/60">Studio Apartments · Admin</p>
             </div>
           )}
         </div>

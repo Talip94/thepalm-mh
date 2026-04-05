@@ -102,10 +102,10 @@ export default function TenantDashboard() {
                   <p className="text-sm font-medium">{format(new Date(tenant.lease_start), 'dd. MMMM yyyy', { locale: de })}</p>
                 </div>
               )}
-              {apartment.size_sqm && (
+              {apartment.category && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Größe</p>
-                  <p className="text-sm font-medium">{apartment.size_sqm} m² · {apartment.rooms} Zimmer</p>
+                  <p className="text-sm text-muted-foreground">Kategorie</p>
+                  <p className="text-sm font-medium">{APARTMENT_CATEGORIES.find(c => c.value === apartment.category)?.label ?? apartment.category} · {apartment.rooms} Zimmer</p>
                 </div>
               )}
             </div>
