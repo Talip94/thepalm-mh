@@ -38,6 +38,13 @@ export default function TenantDocuments() {
     }
   };
 
+  const handleOpen = async (filePath: string) => {
+    const { data } = await supabase.storage.from('documents').createSignedUrl(filePath, 300);
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, '_blank');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -68,7 +75,7 @@ export default function TenantDocuments() {
             <CardContent>
               <div className="space-y-2">
                 {docs!.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between py-3 px-3 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors">
+                  <div key={doc.id} className="flex items-center justify-between py-3 px-3 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => handleOpen(doc.file_path)}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{doc.title}</p>
                       <p className="text-xs text-muted-foreground">
@@ -77,7 +84,7 @@ export default function TenantDocuments() {
                         {doc.file_size && ` · ${(doc.file_size / 1024).toFixed(0)} KB`}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownload(doc.file_path, doc.title)}>
+                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); handleDownload(doc.file_path, doc.title); }}>
                       <Download className="h-4 w-4" />
                     </Button>
                   </div>

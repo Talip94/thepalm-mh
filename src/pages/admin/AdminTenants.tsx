@@ -6,16 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TENANT_STATUSES } from '@/lib/constants';
-import { Users, Plus, Pencil } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
+function generatePassword(length = 12) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let pw = '';
+  for (let i = 0; i < length; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  return pw;
+}
 
 export default function AdminTenants() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active' });
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
 
   const { data: tenants, isLoading } = useQuery({
     queryKey: ['admin-tenants'],
@@ -49,13 +59,21 @@ export default function AdminTenants() {
         const { error } = await supabase.from('tenants').update(payload).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('tenants').insert(payload);
+        // Create tenant record first
+        const { data: newTenant, error } = await supabase.from('tenants').insert(payload).select().single();
         if (error) throw error;
+
+        // Create auth user via edge function
+        const { data: result, error: fnError } = await supabase.functions.invoke('admin-manage-tenant', {
+          body: { action: 'create', email: data.email, password: data.password, tenant_id: newTenant.id },
+        });
+        if (fnError) throw fnError;
+        if (result?.error) throw new Error(result.error);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
-      toast.success(editing ? 'Mieter aktualisiert' : 'Mieter angelegt');
+      toast.success(editing ? 'Mieter aktualisiert' : 'Mieter angelegt – Zugangsdaten erstellt');
       setOpen(false);
       setEditing(null);
       resetForm();
@@ -63,7 +81,22 @@ export default function AdminTenants() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
-  const resetForm = () => setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active' });
+  const deleteMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const { data: result, error } = await supabase.functions.invoke('admin-manage-tenant', {
+        body: { action: 'delete', tenant_id: tenantId },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      toast.success('Mieter gelöscht – Zugang entfernt');
+    },
+    onError: (e: any) => toast.error('Fehler', { description: e.message }),
+  });
+
+  const resetForm = () => setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
 
   const openEdit = (t: any) => {
     setEditing(t);
@@ -76,6 +109,7 @@ export default function AdminTenants() {
       lease_start: t.lease_start || '',
       lease_end: t.lease_end || '',
       status: t.status,
+      password: '',
     });
     setOpen(true);
   };
@@ -104,6 +138,17 @@ export default function AdminTenants() {
                 <div className="space-y-1"><Label className="text-xs">E-Mail *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></div>
                 <div className="space-y-1"><Label className="text-xs">Telefon</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
               </div>
+              {!editing && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Passwort (automatisch generiert)</Label>
+                  <div className="flex gap-2">
+                    <Input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+                    <Button type="button" variant="outline" size="icon" onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs">Apartment</Label>
                 <Select value={form.apartment_id} onValueChange={v => setForm(f => ({ ...f, apartment_id: v }))}>
@@ -142,7 +187,7 @@ export default function AdminTenants() {
             const statusLabel = TENANT_STATUSES.find(s => s.value === t.status)?.label ?? t.status;
             const apt = (t as any).apartments;
             return (
-              <Card key={t.id} className="hover:border-primary/20 transition-colors">
+              <Card key={t.id} className="hover:border-primary/20 transition-colors cursor-pointer" onClick={() => navigate(`/admin/tenants/${t.id}`)}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -151,7 +196,24 @@ export default function AdminTenants() {
                     </div>
                     <p className="text-xs text-muted-foreground">{t.email} {apt && `· ${apt.apartment_number}`}</p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Mieter löschen?</AlertDialogTitle>
+                          <AlertDialogDescription>„{t.first_name} {t.last_name}" wird unwiderruflich gelöscht und verliert den Zugang zum Portal.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteMutation.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardContent>
               </Card>
             );

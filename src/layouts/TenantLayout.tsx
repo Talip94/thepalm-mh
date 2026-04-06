@@ -6,7 +6,6 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { Building2, LayoutDashboard, FileText, AlertTriangle, ListChecks, User, LogOut, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const tenantNav = [
   { title: 'Dashboard', url: '/tenant', icon: LayoutDashboard },
@@ -18,9 +17,13 @@ const tenantNav = [
 
 function TenantSidebarContent() {
   const { signOut, tenantInfo } = useAuth();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -52,6 +55,7 @@ function TenantSidebarContent() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/tenant'}
+                      onClick={handleNavClick}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                           isActive

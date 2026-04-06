@@ -1,21 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { APARTMENT_STATUSES, APARTMENT_CATEGORIES } from '@/lib/constants';
-import { Building2, Plus, Pencil } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
+const DEFAULT_STREET = 'Leineweberstraße 65';
+const DEFAULT_POSTAL = '45468';
+const DEFAULT_CITY = 'Mülheim an der Ruhr';
 
 export default function AdminApartments() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', category: 'micro', rooms: '1', status: 'available' });
+  const defaultForm = { apartment_number: '', name: '', street: DEFAULT_STREET, city: DEFAULT_CITY, postal_code: DEFAULT_POSTAL, floor: '', category: 'micro', status: 'available' };
+  const [form, setForm] = useState(defaultForm);
 
   const { data: apartments, isLoading } = useQuery({
     queryKey: ['admin-apartments'],
@@ -35,7 +41,7 @@ export default function AdminApartments() {
         postal_code: data.postal_code || null,
         floor: data.floor || null,
         category: data.category,
-        rooms: data.rooms ? parseInt(data.rooms) : 1,
+        rooms: 1,
         status: data.status,
       };
       if (editing) {
@@ -57,19 +63,31 @@ export default function AdminApartments() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
-  const resetForm = () => setForm({ apartment_number: '', name: '', street: '', city: 'Berlin', postal_code: '', floor: '', category: 'micro', rooms: '1', status: 'available' });
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('apartments').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-apartments'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast.success('Apartment gelöscht');
+    },
+    onError: (e: any) => toast.error('Fehler', { description: e.message }),
+  });
+
+  const resetForm = () => setForm(defaultForm);
 
   const openEdit = (apt: any) => {
     setEditing(apt);
     setForm({
       apartment_number: apt.apartment_number,
       name: apt.name || '',
-      street: apt.street || '',
-      city: apt.city || 'Berlin',
-      postal_code: apt.postal_code || '',
+      street: apt.street || DEFAULT_STREET,
+      city: apt.city || DEFAULT_CITY,
+      postal_code: apt.postal_code || DEFAULT_POSTAL,
       floor: apt.floor || '',
       category: apt.category || 'micro',
-      rooms: apt.rooms?.toString() || '1',
       status: apt.status,
     });
     setOpen(true);
@@ -104,7 +122,7 @@ export default function AdminApartments() {
                 <div className="space-y-1"><Label className="text-xs">PLZ</Label><Input value={form.postal_code} onChange={e => setForm(f => ({ ...f, postal_code: e.target.value }))} /></div>
                 <div className="space-y-1"><Label className="text-xs">Stadt</Label><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1"><Label className="text-xs">Etage</Label><Input value={form.floor} onChange={e => setForm(f => ({ ...f, floor: e.target.value }))} /></div>
                 <div className="space-y-1">
                   <Label className="text-xs">Kategorie</Label>
@@ -113,7 +131,6 @@ export default function AdminApartments() {
                     <SelectContent>{APARTMENT_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1"><Label className="text-xs">Zimmer</Label><Input type="number" value={form.rooms} onChange={e => setForm(f => ({ ...f, rooms: e.target.value }))} /></div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Status</Label>
@@ -149,7 +166,24 @@ export default function AdminApartments() {
                     </div>
                     <p className="text-xs text-muted-foreground">{apt.street && `${apt.street}, `}{apt.postal_code} {apt.city} · {categoryLabel}</p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}><Pencil className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}><Pencil className="h-4 w-4" /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Apartment löschen?</AlertDialogTitle>
+                          <AlertDialogDescription>Das Apartment „{apt.apartment_number}" wird unwiderruflich gelöscht. Zugehörige Mieter verlieren die Zuordnung.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteMutation.mutate(apt.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardContent>
               </Card>
             );
