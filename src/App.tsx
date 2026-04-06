@@ -17,6 +17,7 @@ import TenantProfile from "./pages/tenant/TenantProfile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminApartments from "./pages/admin/AdminApartments";
 import AdminTenants from "./pages/admin/AdminTenants";
+import AdminTenantDetail from "./pages/admin/AdminTenantDetail";
 import AdminDocuments from "./pages/admin/AdminDocuments";
 import AdminIssues from "./pages/admin/AdminIssues";
 import AdminIssueDetail from "./pages/admin/AdminIssueDetail";

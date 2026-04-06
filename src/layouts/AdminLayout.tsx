@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import {
-  Building2, LayoutDashboard, Home, Users, FileText, Upload, AlertTriangle, Settings, LogOut, Menu,
+  Building2, LayoutDashboard, Home, Users, FileText, AlertTriangle, Settings, LogOut, Menu,
 } from 'lucide-react';
 
 const adminNav = [
@@ -20,9 +20,13 @@ const adminNav = [
 
 function AdminSidebarContent() {
   const { signOut } = useAuth();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const navigate = useNavigate();
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -50,6 +54,7 @@ function AdminSidebarContent() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/admin'}
+                      onClick={handleNavClick}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                           isActive
