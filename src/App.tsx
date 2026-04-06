@@ -53,6 +53,7 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
         <Route path="/admin/apartments" element={<AdminLayout><AdminApartments /></AdminLayout>} />
         <Route path="/admin/tenants" element={<AdminLayout><AdminTenants /></AdminLayout>} />
+        <Route path="/admin/tenants/:id" element={<AdminLayout><AdminTenantDetail /></AdminLayout>} />
         <Route path="/admin/documents" element={<AdminLayout><AdminDocuments /></AdminLayout>} />
         <Route path="/admin/issues" element={<AdminLayout><AdminIssues /></AdminLayout>} />
         <Route path="/admin/issues/:id" element={<AdminLayout><AdminIssueDetail /></AdminLayout>} />
