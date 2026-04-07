@@ -201,11 +201,10 @@ export default function AdminTenantDetail() {
               </div>
             ))}
           </div>
-          {validRows.length > 0 && (
-            <Button className="mt-4" onClick={() => uploadMutation.mutate(validRows)} disabled={uploadMutation.isPending}>
-              {uploadMutation.isPending ? 'Wird hochgeladen…' : `${validRows.length} Dokument${validRows.length > 1 ? 'e' : ''} hochladen`}
-            </Button>
-          )}
+          <Button className="mt-4 w-full md:w-auto" onClick={() => uploadMutation.mutate(validRows)} disabled={uploadMutation.isPending || validRows.length === 0}>
+            <Upload className="h-4 w-4 mr-2" />
+            {uploadMutation.isPending ? 'Wird hochgeladen…' : validRows.length > 0 ? `${validRows.length} Dokument${validRows.length > 1 ? 'e' : ''} hochladen` : 'Dokumente hochladen'}
+          </Button>
         </CardContent>
       </Card>
 
