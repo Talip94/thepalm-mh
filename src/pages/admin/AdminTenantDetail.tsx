@@ -91,7 +91,14 @@ export default function AdminTenantDetail() {
 
   const updateRow = (rowId: string, updates: Partial<DocUploadRow>) => {
     setUploadRows(prev => {
-      const updated = prev.map(r => r.id === rowId ? { ...r, ...updates } : r);
+      const updated = prev.map(r => {
+        const merged = { ...r, ...updates };
+        if (r.id === rowId && updates.category_id && (!r.title || categories?.some(c => c.id === r.category_id && c.name === r.title) || r.title === '')) {
+          const cat = categories?.find(c => c.id === updates.category_id);
+          if (cat) merged.title = cat.name;
+        }
+        return r.id === rowId ? merged : r;
+      });
       const last = updated[updated.length - 1];
       if (last.file) {
         return [...updated, makeRow()];
