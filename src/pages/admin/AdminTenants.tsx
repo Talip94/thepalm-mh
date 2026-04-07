@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TENANT_STATUSES } from '@/lib/constants';
-import { Users, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 
 function generatePassword(length = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
@@ -25,6 +27,7 @@ export default function AdminTenants() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
 
   const { data: tenants, isLoading } = useQuery({
@@ -59,11 +62,9 @@ export default function AdminTenants() {
         const { error } = await supabase.from('tenants').update(payload).eq('id', editing.id);
         if (error) throw error;
       } else {
-        // Create tenant record first
         const { data: newTenant, error } = await supabase.from('tenants').insert(payload).select().single();
         if (error) throw error;
 
-        // Create auth user via edge function
         const { data: result, error: fnError } = await supabase.functions.invoke('admin-manage-tenant', {
           body: { action: 'create', email: data.email, password: data.password, tenant_id: newTenant.id },
         });
@@ -73,6 +74,7 @@ export default function AdminTenants() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-apartments'] });
       toast.success(editing ? 'Mieter aktualisiert' : 'Mieter angelegt – Zugangsdaten erstellt');
       setOpen(false);
       setEditing(null);
@@ -91,6 +93,7 @@ export default function AdminTenants() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-apartments'] });
       toast.success('Mieter gelöscht – Zugang entfernt');
     },
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
@@ -114,14 +117,56 @@ export default function AdminTenants() {
     setOpen(true);
   };
 
+  const activeTenants = (tenants ?? []).filter(t => t.status !== 'moved_out');
+  const archivedTenants = (tenants ?? []).filter(t => t.status === 'moved_out');
   const statusColor: Record<string, string> = { active: 'status-done', moved_out: 'status-closed', paused: 'status-progress' };
+
+  const renderTenantCard = (t: any) => {
+    const statusLabel = TENANT_STATUSES.find(s => s.value === t.status)?.label ?? t.status;
+    const apt = (t as any).apartments;
+    return (
+      <Card key={t.id} className="hover:border-primary/20 transition-colors cursor-pointer" onClick={() => navigate(`/admin/tenants/${t.id}`)}>
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-medium">{t.first_name} {t.last_name}</p>
+              <span className={`status-badge ${statusColor[t.status] || 'status-closed'}`}>{statusLabel}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t.email} {apt && `· ${apt.apartment_number}`}
+              {t.lease_start && ` · ab ${format(new Date(t.lease_start), 'dd.MM.yyyy')}`}
+              {t.lease_end && ` – ${format(new Date(t.lease_end), 'dd.MM.yyyy')}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            <Button variant="ghost" size="sm" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Mieter löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>„{t.first_name} {t.last_name}" wird unwiderruflich gelöscht und verliert den Zugang zum Portal.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteMutation.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Mieter</h1>
-          <p className="text-muted-foreground text-sm mt-1">{tenants?.length ?? 0} Mieter</p>
+          <p className="text-muted-foreground text-sm mt-1">{activeTenants.length} aktiv{archivedTenants.length > 0 && ` · ${archivedTenants.length} archiviert`}</p>
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); resetForm(); } }}>
           <DialogTrigger asChild>
@@ -179,46 +224,28 @@ export default function AdminTenants() {
 
       {isLoading ? (
         <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}</div>
-      ) : !tenants || tenants.length === 0 ? (
+      ) : activeTenants.length === 0 && archivedTenants.length === 0 ? (
         <Card><CardContent className="py-12 text-center"><Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" /><p className="text-muted-foreground text-sm">Noch keine Mieter angelegt.</p></CardContent></Card>
       ) : (
-        <div className="space-y-2">
-          {tenants.map(t => {
-            const statusLabel = TENANT_STATUSES.find(s => s.value === t.status)?.label ?? t.status;
-            const apt = (t as any).apartments;
-            return (
-              <Card key={t.id} className="hover:border-primary/20 transition-colors cursor-pointer" onClick={() => navigate(`/admin/tenants/${t.id}`)}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-medium">{t.first_name} {t.last_name}</p>
-                      <span className={`status-badge ${statusColor[t.status] || 'status-closed'}`}>{statusLabel}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t.email} {apt && `· ${apt.apartment_number}`}</p>
-                  </div>
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Mieter löschen?</AlertDialogTitle>
-                          <AlertDialogDescription>„{t.first_name} {t.last_name}" wird unwiderruflich gelöscht und verliert den Zugang zum Portal.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteMutation.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          <div className="space-y-2">
+            {activeTenants.map(renderTenantCard)}
+          </div>
+
+          {archivedTenants.length > 0 && (
+            <Collapsible open={showArchived} onOpenChange={setShowArchived}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground gap-2">
+                  {showArchived ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  Ausgezogene Mieter ({archivedTenants.length})
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 mt-2">
+                {archivedTenants.map(renderTenantCard)}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </>
       )}
     </div>
   );

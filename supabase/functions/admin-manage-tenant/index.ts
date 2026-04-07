@@ -17,9 +17,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Verify caller is admin
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, {
+    const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: isAdmin } = await userClient.rpc("is_admin");
@@ -68,6 +69,35 @@ Deno.serve(async (req) => {
       }).eq("id", tenant_id);
       if (linkError) throw linkError;
 
+      // Auto-archive previous tenant on same apartment & update apartment status
+      const { data: tenant } = await adminClient.from("tenants").select("apartment_id, lease_start").eq("id", tenant_id).single();
+      if (tenant?.apartment_id) {
+        // Archive any other active tenants on this apartment
+        const { data: otherTenants } = await adminClient.from("tenants")
+          .select("id")
+          .eq("apartment_id", tenant.apartment_id)
+          .eq("status", "active")
+          .neq("id", tenant_id);
+        
+        if (otherTenants && otherTenants.length > 0) {
+          const leaseEndDate = tenant.lease_start 
+            ? new Date(new Date(tenant.lease_start).getTime() - 86400000).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0];
+          
+          for (const ot of otherTenants) {
+            await adminClient.from("tenants").update({
+              status: "moved_out",
+              lease_end: leaseEndDate,
+            }).eq("id", ot.id);
+          }
+        }
+
+        // Set apartment to occupied if tenant has lease_start
+        if (tenant.lease_start) {
+          await adminClient.from("apartments").update({ status: "occupied" }).eq("id", tenant.apartment_id);
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, user_id: userId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -82,12 +112,25 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get user_id from tenant
-      const { data: tenant } = await adminClient.from("tenants").select("user_id").eq("id", tenant_id).single();
+      // Get tenant info
+      const { data: tenant } = await adminClient.from("tenants").select("user_id, apartment_id").eq("id", tenant_id).single();
 
-      // Delete auth user if exists (cascades to user_roles)
+      // Delete auth user if exists
       if (tenant?.user_id) {
         await adminClient.auth.admin.deleteUser(tenant.user_id);
+      }
+
+      // Check if apartment should be set to available
+      if (tenant?.apartment_id) {
+        const { data: remainingTenants } = await adminClient.from("tenants")
+          .select("id")
+          .eq("apartment_id", tenant.apartment_id)
+          .eq("status", "active")
+          .neq("id", tenant_id);
+        
+        if (!remainingTenants || remainingTenants.length === 0) {
+          await adminClient.from("apartments").update({ status: "available" }).eq("id", tenant.apartment_id);
+        }
       }
 
       // Delete tenant record
