@@ -200,17 +200,39 @@ export default function AdminTenants() {
                 <div className="space-y-1"><Label className="text-xs">E-Mail *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></div>
                 <div className="space-y-1"><Label className="text-xs">Telefon</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
               </div>
-              {!editing && (
-                <div className="space-y-1">
-                  <Label className="text-xs">Passwort (automatisch generiert)</Label>
-                  <div className="flex gap-2">
-                    <Input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
-                    <Button type="button" variant="outline" size="icon" onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}>
-                      <RefreshCw className="h-4 w-4" />
+              <div className="space-y-1">
+                <Label className="text-xs">{editing ? 'Passwort' : 'Passwort (automatisch generiert)'}</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      required={!editing}
+                      placeholder={editing ? 'Aktuelles Passwort' : ''}
+                    />
+                    <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full" onClick={() => setShowPassword(v => !v)}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  <Button type="button" variant="outline" size="icon" onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  {editing && editing.user_id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!form.password || updatePasswordMutation.isPending}
+                      onClick={() => updatePasswordMutation.mutate({ tenantId: editing.id, password: form.password })}
+                    >
+                      <Key className="h-4 w-4 mr-1" />
+                      {updatePasswordMutation.isPending ? '…' : 'Ändern'}
+                    </Button>
+                  )}
                 </div>
-              )}
+                {editing && <p className="text-xs text-muted-foreground mt-1">Passwort generieren und mit „Ändern" speichern.</p>}
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Apartment</Label>
                 <Select value={form.apartment_id} onValueChange={v => setForm(f => ({ ...f, apartment_id: v }))}>
