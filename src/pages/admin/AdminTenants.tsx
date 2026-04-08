@@ -100,10 +100,26 @@ export default function AdminTenants() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
-  const resetForm = () => setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
+  const updatePasswordMutation = useMutation({
+    mutationFn: async ({ tenantId, password }: { tenantId: string; password: string }) => {
+      const { data: result, error } = await supabase.functions.invoke('admin-manage-tenant', {
+        body: { action: 'update_password', tenant_id: tenantId, password },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      toast.success('Passwort aktualisiert');
+    },
+    onError: (e: any) => toast.error('Fehler', { description: e.message }),
+  });
+
+  const resetForm = () => { setShowPassword(false); setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() }); };
 
   const openEdit = (t: any) => {
     setEditing(t);
+    setShowPassword(false);
     setForm({
       first_name: t.first_name,
       last_name: t.last_name,
@@ -113,7 +129,7 @@ export default function AdminTenants() {
       lease_start: t.lease_start || '',
       lease_end: t.lease_end || '',
       status: t.status,
-      password: '',
+      password: t.initial_password || '',
     });
     setOpen(true);
   };
