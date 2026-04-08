@@ -65,10 +65,11 @@ Deno.serve(async (req) => {
         userId = authData.user.id;
       }
 
-      const { error: roleError } = await adminClient.from("user_roles").insert({
+      // Assign tenant role (ignore if already exists)
+      const { error: roleError } = await adminClient.from("user_roles").upsert({
         user_id: userId,
         role: "tenant",
-      });
+      }, { onConflict: 'user_id,role' });
       if (roleError) throw roleError;
 
       // Link user to tenant record and store initial password
