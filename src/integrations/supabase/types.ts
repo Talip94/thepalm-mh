@@ -326,6 +326,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          initial_password: string | null
           last_name: string
           lease_end: string | null
           lease_start: string | null
@@ -341,6 +342,7 @@ export type Database = {
           email: string
           first_name: string
           id?: string
+          initial_password?: string | null
           last_name: string
           lease_end?: string | null
           lease_start?: string | null
@@ -356,6 +358,7 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          initial_password?: string | null
           last_name?: string
           lease_end?: string | null
           lease_start?: string | null

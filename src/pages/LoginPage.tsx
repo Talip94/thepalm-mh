@@ -119,6 +119,11 @@ export default function LoginPage() {
             </form>
           </CardContent>
         </Card>
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <a href="/datenschutz" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Datenschutz</a>
+          <span className="text-muted-foreground/40 text-xs">·</span>
+          <a href="/nutzungsbedingungen" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Nutzungsbedingungen</a>
+        </div>
       </div>
     </div>
   );

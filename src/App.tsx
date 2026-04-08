@@ -23,6 +23,8 @@ import AdminIssues from "./pages/admin/AdminIssues";
 import AdminIssueDetail from "./pages/admin/AdminIssueDetail";
 import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/datenschutz" element={<PrivacyPage />} />
+        <Route path="/nutzungsbedingungen" element={<TermsPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

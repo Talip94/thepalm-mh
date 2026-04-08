@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TENANT_STATUSES } from '@/lib/constants';
-import { Users, Plus, Pencil, Trash2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, Key } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +28,7 @@ export default function AdminTenants() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
 
   const { data: tenants, isLoading } = useQuery({
@@ -99,10 +100,26 @@ export default function AdminTenants() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
-  const resetForm = () => setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
+  const updatePasswordMutation = useMutation({
+    mutationFn: async ({ tenantId, password }: { tenantId: string; password: string }) => {
+      const { data: result, error } = await supabase.functions.invoke('admin-manage-tenant', {
+        body: { action: 'update_password', tenant_id: tenantId, password },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tenants'] });
+      toast.success('Passwort aktualisiert');
+    },
+    onError: (e: any) => toast.error('Fehler', { description: e.message }),
+  });
+
+  const resetForm = () => { setShowPassword(false); setForm({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() }); };
 
   const openEdit = (t: any) => {
     setEditing(t);
+    setShowPassword(false);
     setForm({
       first_name: t.first_name,
       last_name: t.last_name,
@@ -112,7 +129,7 @@ export default function AdminTenants() {
       lease_start: t.lease_start || '',
       lease_end: t.lease_end || '',
       status: t.status,
-      password: '',
+      password: t.initial_password || '',
     });
     setOpen(true);
   };
@@ -183,17 +200,39 @@ export default function AdminTenants() {
                 <div className="space-y-1"><Label className="text-xs">E-Mail *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required /></div>
                 <div className="space-y-1"><Label className="text-xs">Telefon</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
               </div>
-              {!editing && (
-                <div className="space-y-1">
-                  <Label className="text-xs">Passwort (automatisch generiert)</Label>
-                  <div className="flex gap-2">
-                    <Input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
-                    <Button type="button" variant="outline" size="icon" onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}>
-                      <RefreshCw className="h-4 w-4" />
+              <div className="space-y-1">
+                <Label className="text-xs">{editing ? 'Passwort' : 'Passwort (automatisch generiert)'}</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      required={!editing}
+                      placeholder={editing ? 'Aktuelles Passwort' : ''}
+                    />
+                    <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full" onClick={() => setShowPassword(v => !v)}>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  <Button type="button" variant="outline" size="icon" onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  {editing && editing.user_id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!form.password || updatePasswordMutation.isPending}
+                      onClick={() => updatePasswordMutation.mutate({ tenantId: editing.id, password: form.password })}
+                    >
+                      <Key className="h-4 w-4 mr-1" />
+                      {updatePasswordMutation.isPending ? '…' : 'Ändern'}
+                    </Button>
+                  )}
                 </div>
-              )}
+                {editing && <p className="text-xs text-muted-foreground mt-1">Passwort generieren und mit „Ändern" speichern.</p>}
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Apartment</Label>
                 <Select value={form.apartment_id} onValueChange={v => setForm(f => ({ ...f, apartment_id: v }))}>
