@@ -45,19 +45,31 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-      if (authError) throw authError;
+      // Check if user already exists
+      const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+      
+      let userId: string;
+      
+      if (existingUser) {
+        userId = existingUser.id;
+        // Update password for existing user
+        await adminClient.auth.admin.updateUser(userId, { password });
+      } else {
+        const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+        });
+        if (authError) throw authError;
+        userId = authData.user.id;
+      }
 
-      const userId = authData.user.id;
-
-      const { error: roleError } = await adminClient.from("user_roles").insert({
+      // Assign tenant role (ignore if already exists)
+      const { error: roleError } = await adminClient.from("user_roles").upsert({
         user_id: userId,
         role: "tenant",
-      });
+      }, { onConflict: 'user_id,role' });
       if (roleError) throw roleError;
 
       // Link user to tenant record and store initial password
