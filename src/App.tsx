@@ -23,6 +23,8 @@ import AdminIssues from "./pages/admin/AdminIssues";
 import AdminIssueDetail from "./pages/admin/AdminIssueDetail";
 import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 
 const queryClient = new QueryClient();
 
