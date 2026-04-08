@@ -28,6 +28,7 @@ export default function AdminTenants() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', apartment_id: '', lease_start: '', lease_end: '', status: 'active', password: generatePassword() });
 
   const { data: tenants, isLoading } = useQuery({
