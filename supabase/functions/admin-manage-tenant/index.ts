@@ -130,8 +130,6 @@ Deno.serve(async (req) => {
       const { error: authError } = await adminClient.auth.admin.updateUser(tenant.user_id, { password });
       if (authError) throw authError;
 
-      // Update stored password
-      await adminClient.from("tenants").update({ initial_password: password }).eq("id", tenant_id);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
