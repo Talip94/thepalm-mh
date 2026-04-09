@@ -72,10 +72,9 @@ Deno.serve(async (req) => {
       }, { onConflict: 'user_id,role' });
       if (roleError) throw roleError;
 
-      // Link user to tenant record and store initial password
+      // Link user to tenant record
       const { error: linkError } = await adminClient.from("tenants").update({
         user_id: userId,
-        initial_password: password,
       }).eq("id", tenant_id);
       if (linkError) throw linkError;
 
@@ -131,8 +130,6 @@ Deno.serve(async (req) => {
       const { error: authError } = await adminClient.auth.admin.updateUser(tenant.user_id, { password });
       if (authError) throw authError;
 
-      // Update stored password
-      await adminClient.from("tenants").update({ initial_password: password }).eq("id", tenant_id);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
