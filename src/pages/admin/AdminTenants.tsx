@@ -129,7 +129,7 @@ export default function AdminTenants() {
       lease_start: t.lease_start || '',
       lease_end: t.lease_end || '',
       status: t.status,
-      password: t.initial_password || '',
+      password: '',
     });
     setOpen(true);
   };
