@@ -72,10 +72,9 @@ Deno.serve(async (req) => {
       }, { onConflict: 'user_id,role' });
       if (roleError) throw roleError;
 
-      // Link user to tenant record and store initial password
+      // Link user to tenant record
       const { error: linkError } = await adminClient.from("tenants").update({
         user_id: userId,
-        initial_password: password,
       }).eq("id", tenant_id);
       if (linkError) throw linkError;
 
