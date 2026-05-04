@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FileText, Upload, Download } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { FileText, Upload, Download, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,12 +63,33 @@ export default function AdminDocuments() {
     onError: (e: any) => toast.error('Fehler', { description: e.message }),
   });
 
+  // Group documents by apartment
+  const groupedByApartment = (documents ?? []).reduce<Record<string, { label: string; docs: any[] }>>((acc, doc) => {
+    const apt = (doc as any).apartments;
+    const key = apt?.apartment_number ? `apt-${apt.apartment_number}` : 'unassigned';
+    const label = apt?.apartment_number ? `Apartment ${apt.apartment_number}` : 'Ohne Apartment-Zuordnung';
+    if (!acc[key]) acc[key] = { label, docs: [] };
+    acc[key].docs.push(doc);
+    return acc;
+  }, {});
+
+  const sortedGroups = Object.entries(groupedByApartment).sort(([a], [b]) => {
+    if (a === 'unassigned') return 1;
+    if (b === 'unassigned') return -1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+
+  const handleDownload = async (filePath: string, title: string) => {
+    const { data } = await supabase.storage.from('documents').download(filePath);
+    if (data) { const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = title; a.click(); URL.revokeObjectURL(url); }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Dokumente</h1>
-          <p className="text-muted-foreground text-sm mt-1">{documents?.length ?? 0} Dokumente</p>
+          <p className="text-muted-foreground text-sm mt-1">{documents?.length ?? 0} Dokumente in {sortedGroups.length} Apartment-Gruppen</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -117,32 +139,46 @@ export default function AdminDocuments() {
       ) : !documents || documents.length === 0 ? (
         <Card><CardContent className="py-12 text-center"><FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" /><p className="text-muted-foreground text-sm">Noch keine Dokumente vorhanden.</p></CardContent></Card>
       ) : (
-        <div className="space-y-2">
-          {documents.map(doc => {
-            const cat = (doc as any).document_categories;
-            const apt = (doc as any).apartments;
-            const tenant = (doc as any).tenants;
-            return (
-              <Card key={doc.id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{doc.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {cat?.name && `${cat.name} · `}{apt?.apartment_number && `${apt.apartment_number} · `}
-                      {tenant && `${tenant.first_name} ${tenant.last_name} · `}{format(new Date(doc.created_at), 'dd.MM.yyyy')}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={async () => {
-                    const { data } = await supabase.storage.from('documents').download(doc.file_path);
-                    if (data) { const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = doc.title; a.click(); URL.revokeObjectURL(url); }
-                  }}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <Card>
+          <CardContent className="p-2">
+            <Accordion type="multiple" className="w-full">
+              {sortedGroups.map(([key, group]) => (
+                <AccordionItem key={key} value={key}>
+                  <AccordionTrigger className="px-3 hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">{group.label}</span>
+                      <span className="text-xs text-muted-foreground">({group.docs.length})</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2 px-2">
+                      {group.docs.map(doc => {
+                        const cat = (doc as any).document_categories;
+                        const tenant = (doc as any).tenants;
+                        return (
+                          <div key={doc.id} className="flex items-center justify-between py-2 px-3 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{doc.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {cat?.name && `${cat.name} · `}
+                                {tenant && `${tenant.first_name} ${tenant.last_name} · `}
+                                {format(new Date(doc.created_at), 'dd.MM.yyyy')}
+                              </p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => handleDownload(doc.file_path, doc.title)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
